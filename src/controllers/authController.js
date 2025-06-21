@@ -170,7 +170,54 @@ class AuthController {
     } catch (error) {
       console.error('Erro ao buscar usuário:', error);
       res.status(500).json({ 
-        message: 'Erro interno do servidor' 
+        message: 'Erro interno do servidor' + error 
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/auth/verify:
+   *   get:
+   *     summary: Verifica a validade do token e retorna o usuário autenticado
+   *     tags:
+   *       - Autenticação
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Token válido e informações do usuário retornadas
+   *       404:
+   *         description: Usuário não encontrado
+   *       500:
+   *         description: Erro interno do servidor
+   */
+  async verify(req, res) {
+    try {
+      const user = await Usuario.findByPk(req.user.id, {
+        include: [{
+          model: Empresa,
+          as: 'empresa',
+          attributes: ['id', 'razao_social', 'cnpj_cpf']
+        }],
+        attributes: { exclude: ['senha'] }
+      });
+
+      if (!user) {
+        return res.status(404).json({ 
+          message: 'Usuário não encontrado' 
+        });
+      }
+
+      res.json({
+        valid: true,
+        usuario: user
+      });
+
+    } catch (error) {
+      console.error('Erro na verificação do token:', error);
+      res.status(500).json({ 
+        message: 'Erro interno do servidor' + error
       });
     }
   }
@@ -287,7 +334,8 @@ class AuthController {
       });
     }
   }
+
+  
 }
 
 module.exports = new AuthController();
-

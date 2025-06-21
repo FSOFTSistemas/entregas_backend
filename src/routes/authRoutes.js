@@ -10,6 +10,7 @@ router.post('/login', authController.login);
 // Rotas protegidas
 router.get('/me', authenticateToken, authController.me);
 router.post('/register', authenticateToken, authController.register);
+router.get('/verify', authenticateToken, authController.verify);
 
 module.exports = router;
 
