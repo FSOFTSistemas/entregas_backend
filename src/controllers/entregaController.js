@@ -242,7 +242,7 @@ class EntregaController {
         });
       }
 
-      const { produto_id, quantidade, descricao, cliente, data } = req.body;
+      const { produto_id, quantidade, descricao, cliente, data, entregador_id } = req.body;
 
       if (!produto_id || !quantidade || !data) {
         return res.status(400).json({ 
@@ -273,7 +273,8 @@ class EntregaController {
         descricao,
         cliente,
         data,
-        status: 'pendente'
+        status: 'pendente',
+        entregador_id
       });
 
       // Buscar entrega criada com relacionamentos
@@ -374,7 +375,13 @@ class EntregaController {
         });
       }
 
-      const { produto_id, quantidade, descricao, cliente, data, status } = req.body;
+      const { produto_id, quantidade, descricao, cliente, data, status, entregador_id } = req.body;
+
+      if (entregador_id === undefined || entregador_id === null) {
+        return res.status(400).json({
+          message: 'O campo entregador_id é obrigatório na atualização.'
+        });
+      }
 
       // Preparar dados para atualização
       const updateData = {};
@@ -395,6 +402,7 @@ class EntregaController {
       if (cliente !== undefined) updateData.cliente = cliente;
       if (data !== undefined) updateData.data = data;
       if (status !== undefined) updateData.status = status;
+      if (entregador_id !== undefined) updateData.entregador_id = entregador_id;
 
       await entrega.update(updateData);
 

@@ -53,6 +53,14 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('pendente', 'em_transito', 'entregue'),
       allowNull: false,
       defaultValue: 'pendente'
+    },
+    entregador_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'usuarios',
+        key: 'id'
+      }
     }
   }, {
     tableName: 'entregas',
@@ -62,4 +70,3 @@ module.exports = (sequelize) => {
 
   return Entrega;
 };
-
