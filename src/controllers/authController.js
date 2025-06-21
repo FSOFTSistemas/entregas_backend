@@ -122,7 +122,7 @@ class AuthController {
     } catch (error) {
       console.error('Erro no login:', error);
       res.status(500).json({ 
-        message: 'Erro interno do servidor' 
+        message: 'Erro interno do servidor' + error 
       });
     }
   }
