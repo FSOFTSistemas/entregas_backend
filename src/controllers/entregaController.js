@@ -1,4 +1,4 @@
-const { Entrega, Produto, Empresa } = require('../models');
+const { Entrega, Produto, Empresa, Usuario } = require('../models');
 
 /**
  * @swagger
@@ -104,6 +104,11 @@ class EntregaController {
             model: Empresa,
             as: 'empresa',
             attributes: ['id', 'razao_social', 'cnpj_cpf']
+          },
+          {
+            model: Usuario,
+            as: 'entregador',
+            attributes: ['id', 'nome', 'email']
           }
         ],
         order: [['created_at', 'DESC']]
@@ -242,7 +247,7 @@ class EntregaController {
         });
       }
 
-      const { produto_id, quantidade, descricao, cliente, data, entregador_id } = req.body;
+      const { produto_id, quantidade, descricao, cliente, data } = req.body;
 
       if (!produto_id || !quantidade || !data) {
         return res.status(400).json({ 
@@ -274,7 +279,6 @@ class EntregaController {
         cliente,
         data,
         status: 'pendente',
-        entregador_id
       });
 
       // Buscar entrega criada com relacionamentos

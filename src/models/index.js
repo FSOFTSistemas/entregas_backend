@@ -49,6 +49,17 @@ Entrega.belongsTo(Produto, {
   as: 'produto' 
 });
 
+Usuario.hasMany(Entrega, {
+  foreignKey: 'entregador_id',
+  as: 'entregas_entregador',
+  onDelete: 'SET NULL'
+});
+
+Entrega.belongsTo(Usuario, {
+  foreignKey: 'entregador_id',
+  as: 'entregador'
+});
+
 // Sincronizar modelos com o banco de dados
 const syncDatabase = async () => {
   try {

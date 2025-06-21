@@ -72,7 +72,7 @@ class EmpresaController {
     } catch (error) {
       console.error('Erro ao listar empresas:', error);
       res.status(500).json({ 
-        message: 'Erro interno do servidor' 
+        message: 'Erro interno do servidor' + error.message
       });
     }
   }
