@@ -16,22 +16,6 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
-    produto_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'produtos',
-        key: 'id'
-      }
-    },
-    quantidade: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        isInt: true,
-        min: 1
-      }
-    },
     descricao: {
       type: DataTypes.TEXT,
       allowNull: true

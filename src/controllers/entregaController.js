@@ -1,4 +1,4 @@
-const { Entrega, Produto, Empresa, Usuario } = require('../models');
+const { Entrega, Produto, Empresa, Usuario, EntregaProduto } = require('../models');
 
 /**
  * @swagger
@@ -13,12 +13,23 @@ const { Entrega, Produto, Empresa, Usuario } = require('../models');
  *         empresa_id:
  *           type: integer
  *           description: ID da empresa
- *         produto_id:
- *           type: integer
- *           description: ID do produto
- *         quantidade:
- *           type: integer
- *           description: Quantidade de produtos
+ *         produtos:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *               descricao:
+ *                 type: string
+ *               preco_venda:
+ *                 type: number
+ *                 format: float
+ *               quantidade:
+ *                 type: integer
+ *               preco_unitario:
+ *                 type: number
+ *                 format: float
  *         descricao:
  *           type: string
  *           description: Descrição da entrega
@@ -43,8 +54,6 @@ const { Entrega, Produto, Empresa, Usuario } = require('../models');
  *         updated_at:
  *           type: string
  *           format: date-time
- *         produto:
- *           $ref: '#/components/schemas/Produto'
  *         empresa:
  *           $ref: '#/components/schemas/Empresa'
  */
@@ -97,8 +106,9 @@ class EntregaController {
         include: [
           {
             model: Produto,
-            as: 'produto',
-            attributes: ['id', 'descricao', 'preco_venda']
+            as: 'produtos',
+            attributes: ['id', 'descricao', 'preco_venda'],
+            through: { attributes: ['quantidade', 'preco_unitario'] }
           },
           {
             model: Empresa,
@@ -162,8 +172,9 @@ class EntregaController {
         include: [
           {
             model: Produto,
-            as: 'produto',
-            attributes: ['id', 'descricao', 'preco_venda']
+            as: 'produtos',
+            attributes: ['id', 'descricao', 'preco_venda'],
+            through: { attributes: ['quantidade', 'preco_unitario'] }
           },
           {
             model: Empresa,
@@ -213,14 +224,22 @@ class EntregaController {
    *           schema:
    *             type: object
    *             required:
-   *               - produto_id
-   *               - quantidade
+   *               - produtos
    *               - data
    *             properties:
-   *               produto_id:
-   *                 type: integer
-   *               quantidade:
-   *                 type: integer
+   *               produtos:
+   *                 type: array
+   *                 items:
+   *                   type: object
+   *                   required: [produto_id, quantidade, preco_unitario]
+   *                   properties:
+   *                     produto_id:
+   *                       type: integer
+   *                     quantidade:
+   *                       type: integer
+   *                     preco_unitario:
+   *                       type: number
+   *                       format: float
    *               descricao:
    *                 type: string
    *               cliente:
@@ -246,48 +265,43 @@ class EntregaController {
           message: 'Acesso negado. Entregadores não podem criar entregas.' 
         });
       }
+      const { produtos, descricao, cliente, data } = req.body;
 
-      const { produto_id, quantidade, descricao, cliente, data } = req.body;
-
-      if (!produto_id || !quantidade || !data) {
+      if (!Array.isArray(produtos) || produtos.length === 0) {
         return res.status(400).json({ 
-          message: 'Produto, quantidade e data são obrigatórios' 
-        });
-      }
-
-      // Verificar se o produto existe e pertence à empresa do usuário
-      const produto = await Produto.findByPk(produto_id);
-      if (!produto) {
-        return res.status(400).json({ 
-          message: 'Produto não encontrado' 
-        });
-      }
-
-      // Verificar se o usuário pode criar entrega para este produto
-      if (req.user.tipo_usuario !== 'master' && 
-          req.user.empresa_id !== produto.empresa_id) {
-        return res.status(403).json({ 
-          message: 'Acesso negado. Você só pode criar entregas para produtos da sua empresa.' 
+          message: 'É necessário informar ao menos um produto na entrega.' 
         });
       }
 
       const entrega = await Entrega.create({
-        empresa_id: produto.empresa_id,
-        produto_id,
-        quantidade,
+        empresa_id: req.user.empresa_id,
         descricao,
         cliente,
         data,
-        status: 'pendente',
+        status: 'pendente'
       });
+
+      // Salvar os produtos na tabela pivot
+      for (const item of produtos) {
+        const produto = await Produto.findByPk(item.produto_id);
+        if (!produto) {
+          return res.status(400).json({ 
+            message: `Produto com ID ${item.produto_id} não encontrado.` 
+          });
+        }
+        await entrega.addProduto(produto, { 
+          through: { quantidade: item.quantidade, preco_unitario: item.preco_unitario } 
+        });
+      }
 
       // Buscar entrega criada com relacionamentos
       const newEntrega = await Entrega.findByPk(entrega.id, {
         include: [
           {
             model: Produto,
-            as: 'produto',
-            attributes: ['id', 'descricao', 'preco_venda']
+            as: 'produtos',
+            attributes: ['id', 'descricao', 'preco_venda'],
+            through: { attributes: ['quantidade', 'preco_unitario'] }
           },
           {
             model: Empresa,
@@ -333,10 +347,6 @@ class EntregaController {
    *           schema:
    *             type: object
    *             properties:
-   *               produto_id:
-   *                 type: integer
-   *               quantidade:
-   *                 type: integer
    *               descricao:
    *                 type: string
    *               cliente:
@@ -347,6 +357,8 @@ class EntregaController {
    *               status:
    *                 type: string
    *                 enum: [pendente, em_transito, entregue]
+   *               entregador_id:
+   *                 type: integer
    *     responses:
    *       200:
    *         description: Entrega atualizada com sucesso
@@ -378,8 +390,7 @@ class EntregaController {
           message: 'Acesso negado.' 
         });
       }
-
-      const { produto_id, quantidade, descricao, cliente, data, status, entregador_id } = req.body;
+      const { descricao, cliente, data, status, entregador_id } = req.body;
 
       if (entregador_id === undefined || entregador_id === null) {
         return res.status(400).json({
@@ -389,19 +400,6 @@ class EntregaController {
 
       // Preparar dados para atualização
       const updateData = {};
-
-      if (produto_id !== undefined) {
-        // Verificar se o produto existe
-        const produto = await Produto.findByPk(produto_id);
-        if (!produto) {
-          return res.status(400).json({ 
-            message: 'Produto não encontrado' 
-          });
-        }
-        updateData.produto_id = produto_id;
-      }
-
-      if (quantidade !== undefined) updateData.quantidade = quantidade;
       if (descricao !== undefined) updateData.descricao = descricao;
       if (cliente !== undefined) updateData.cliente = cliente;
       if (data !== undefined) updateData.data = data;
@@ -415,8 +413,9 @@ class EntregaController {
         include: [
           {
             model: Produto,
-            as: 'produto',
-            attributes: ['id', 'descricao', 'preco_venda']
+            as: 'produtos',
+            attributes: ['id', 'descricao', 'preco_venda'],
+            through: { attributes: ['quantidade', 'preco_unitario'] }
           },
           {
             model: Empresa,
@@ -591,6 +590,7 @@ class EntregaController {
       }
 
       await entrega.destroy();
+      await EntregaProduto.destroy({ where: { entrega_id: entrega.id } });
 
       res.json({
         message: 'Entrega removida com sucesso'

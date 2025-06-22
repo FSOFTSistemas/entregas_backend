@@ -1,4 +1,3 @@
-
 CREATE DATABASE IF NOT EXISTS sistema_entregas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sistema_entregas;
 
@@ -42,8 +41,6 @@ CREATE TABLE IF NOT EXISTS produtos (
 -- Tabela de entregas
 CREATE TABLE IF NOT EXISTS entregas (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    produto_id INT NOT NULL,
-    quantidade INT NOT NULL,
     descricao TEXT NOT NULL,
     cliente VARCHAR(255),
     data DATE NOT NULL,
@@ -52,9 +49,18 @@ CREATE TABLE IF NOT EXISTS entregas (
     entregador_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE RESTRICT,
     FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (entregador_id) REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS entrega_produtos (
+    entrega_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    quantidade INT NOT NULL DEFAULT 1,
+    preco_unitario DECIMAL(10, 2) DEFAULT NULL,
+    PRIMARY KEY (entrega_id, produto_id),
+    FOREIGN KEY (entrega_id) REFERENCES entregas(id) ON DELETE CASCADE,
+    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE RESTRICT
 );
 
 -- Índices para melhorar performance
@@ -62,7 +68,7 @@ CREATE INDEX idx_usuarios_empresa ON usuarios(empresa_id);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_produtos_empresa ON produtos(empresa_id);
 CREATE INDEX idx_entregas_empresa ON entregas(empresa_id);
-CREATE INDEX idx_entregas_produto ON entregas(produto_id);
+CREATE INDEX idx_entregas_produto ON entregas(id);
 CREATE INDEX idx_entregas_entregador ON entregas(entregador_id);
 CREATE INDEX idx_entregas_status ON entregas(status);
 CREATE INDEX idx_entregas_data ON entregas(data);
@@ -74,7 +80,7 @@ INSERT INTO empresas (cnpj_cpf, razao_social, endereco, logo) VALUES
 
 -- Inserir usuário master inicial (senha: admin123)
 INSERT INTO usuarios (nome, email, senha, tipo_usuario, empresa_id) VALUES 
-('Administrador Master', 'admin@exemplo.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'master', 1);
+('Administrador Master', 'admin@exemplo.com', '$2a$12$OYbGWVBw0NKe6m.dfrBTKOhD9CkG6mfGAO0fH0i8q1eHWYUQf2Qmu', 'master', 1);
 
 -- Inserir alguns produtos de exemplo
 INSERT INTO produtos (descricao, preco_custo, preco_venda, estoque, empresa_id) VALUES 
@@ -82,9 +88,14 @@ INSERT INTO produtos (descricao, preco_custo, preco_venda, estoque, empresa_id) 
 ('Produto B', 25.00, 35.00, 50, 1),
 ('Produto C', 8.75, 12.50, 200, 1);
 
--- Inserir algumas entregas de exemplo
-INSERT INTO entregas (produto_id, quantidade, descricao, cliente, data, status, empresa_id) VALUES 
-(1, 5, 'Entrega para cliente João', 'João Silva', CURDATE(), 'pendente', 1),
-(2, 2, 'Entrega para cliente Maria', 'Maria Santos', CURDATE(), 'em_transito', 1),
-(3, 10, 'Entrega para cliente Pedro', 'Pedro Oliveira', DATE_SUB(CURDATE(), INTERVAL 1 DAY), 'entregue', 1);
+-- Inserir entregas
+INSERT INTO entregas (descricao, cliente, data, status, empresa_id) VALUES 
+('Entrega para cliente João', 'João Silva', CURDATE(), 'pendente', 1),
+('Entrega para cliente Maria', 'Maria Santos', CURDATE(), 'em_transito', 1),
+('Entrega para cliente Pedro', 'Pedro Oliveira', DATE_SUB(CURDATE(), INTERVAL 1 DAY), 'entregue', 1);
 
+-- Inserir produtos relacionados a entregas
+INSERT INTO entrega_produtos (entrega_id, produto_id, quantidade, preco_unitario) VALUES
+(1, 1, 5, 15.00),
+(2, 1, 2, 35.00),
+(3, 1, 10, 12.50);

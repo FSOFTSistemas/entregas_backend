@@ -5,6 +5,7 @@ const Empresa = require('./Empresa')(sequelize);
 const Usuario = require('./Usuario')(sequelize);
 const Produto = require('./Produto')(sequelize);
 const Entrega = require('./Entrega')(sequelize);
+const EntregaProduto = require('./EntregaProduto')(sequelize);
 
 // Definir associações
 // Empresa tem muitos usuários, produtos e entregas
@@ -38,15 +39,20 @@ Entrega.belongsTo(Empresa, {
   as: 'empresa' 
 });
 
-// Produto tem muitas entregas
-Produto.hasMany(Entrega, { 
-  foreignKey: 'produto_id', 
-  as: 'entregas',
-  onDelete: 'CASCADE'
+
+// Novo relacionamento N:N entre Entrega e Produto utilizando a tabela pivot
+Produto.belongsToMany(Entrega, {
+  through: EntregaProduto,
+  foreignKey: 'produto_id',
+  otherKey: 'entrega_id',
+  as: 'entregas'
 });
-Entrega.belongsTo(Produto, { 
-  foreignKey: 'produto_id', 
-  as: 'produto' 
+
+Entrega.belongsToMany(Produto, {
+  through: EntregaProduto,
+  foreignKey: 'entrega_id',
+  otherKey: 'produto_id',
+  as: 'produtos'
 });
 
 Usuario.hasMany(Entrega, {
@@ -63,7 +69,7 @@ Entrega.belongsTo(Usuario, {
 // Sincronizar modelos com o banco de dados
 const syncDatabase = async () => {
   try {
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ alter: false });
     console.log('✅ Modelos sincronizados com o banco de dados.');
   } catch (error) {
     console.error('❌ Erro ao sincronizar modelos:', error);
@@ -76,6 +82,7 @@ module.exports = {
   Usuario,
   Produto,
   Entrega,
+  EntregaProduto,
   syncDatabase
 };
 
