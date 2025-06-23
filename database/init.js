@@ -1,60 +1,40 @@
-const { executeQuery, testConnection } = require('../src/config/database');
-const fs = require('fs');
-const path = require('path');
+import React, { useState, useEffect } from 'react';
+import { Button } from 'some-ui-library'; // Ajuste para o componente Button que você usa
+import { formatCurrency } from '../utils/formatters';
 
-async function initializeDatabase() {
-  console.log('Iniciando configuração do banco de dados...');
+function Produtos() {
+  const [produtos, setProdutos] = useState([]);
+  const [mostrarTotais, setMostrarTotais] = useState(false);
 
-  try {
-    // Testar conexão
-    const connected = await testConnection();
-    if (!connected) {
-      console.error('Não foi possível conectar ao banco de dados.');
-      console.error('Verifique se o MySQL está rodando e as configurações no arquivo .env estão corretas.');
-      process.exit(1);
-    }
+  useEffect(() => {
+    // Carregar produtos da API ou fonte de dados
+  }, []);
 
-    // Ler e executar o script SQL
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    // Dividir o script em comandos individuais
-    const commands = schema.split(';').filter(cmd => cmd.trim().length > 0);
-    
-    console.log('Executando script de criação do banco...');
-    
-    for (const command of commands) {
-      if (command.trim()) {
-        try {
-          await executeQuery(command.trim());
-        } catch (error) {
-          // Ignorar erros de "já existe" para permitir re-execução
-          if (!error.message.includes('already exists') && 
-              !error.message.includes('Duplicate entry')) {
-            throw error;
-          }
-        }
-      }
-    }
+  const totalCustoEstoque = produtos.reduce((acc, produto) => acc + produto.custo * produto.quantidade, 0);
+  const totalVendaEstoque = produtos.reduce((acc, produto) => acc + produto.venda * produto.quantidade, 0);
 
-    console.log('✅ Banco de dados configurado com sucesso!');
-    console.log('');
-    console.log('Dados de acesso inicial:');
-    console.log('Email: admin@exemplo.com');
-    console.log('Senha: admin123');
-    console.log('');
-    console.log('Você pode alterar estes dados após o primeiro login.');
+  return (
+    <div>
+      <div className="mb-4">
+        <Button size="sm" variant="outline" onClick={() => setMostrarTotais(!mostrarTotais)}>
+          {mostrarTotais ? 'Ocultar Totais' : 'Totalizar Estoque'}
+        </Button>
+        {mostrarTotais && (
+          <div className="mt-2">
+            <strong>Total em Estoque (Custo): {formatCurrency(totalCustoEstoque)}</strong><br />
+            <strong>Total em Estoque (Venda): {formatCurrency(totalVendaEstoque)}</strong>
+          </div>
+        )}
+      </div>
 
-  } catch (error) {
-    console.error('❌ Erro ao configurar banco de dados:', error.message);
-    process.exit(1);
-  }
+      {/* Renderizar lista de produtos */}
+      <ul>
+        {produtos.map(produto => (
+          <li key={produto.id}>{produto.nome}</li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
-// Executar se chamado diretamente
-if (require.main === module) {
-  initializeDatabase();
-}
-
-module.exports = { initializeDatabase };
-
+export default Produtos;

@@ -603,6 +603,39 @@ class EntregaController {
       });
     }
   }
+
+ async baixarEstoque (req, res) {
+  try {
+    const entregaId = req.params.id;
+
+    // Buscar produtos da entrega
+    const produtosEntrega = await EntregaProduto.findAll({ where: { entrega_id: entregaId } });
+
+    if (!produtosEntrega || produtosEntrega.length === 0) {
+      return res.status(404).json({ error: 'Nenhum produto encontrado para essa entrega' });
+    }
+
+    for (const item of produtosEntrega) {
+      const produto = await Produto.findByPk(item.produto_id);
+      if (!produto) {
+        return res.status(404).json({ error: `Produto ${item.produto_id} não encontrado` });
+      }
+
+      if (produto.estoque < item.quantidade) {
+        return res.status(400).json({ error: `Estoque insuficiente para o produto ${produto.id}` });
+      }
+
+      produto.estoque -= item.quantidade;
+      await produto.save();
+    }
+
+    return res.json({ message: 'Estoque atualizado com sucesso' });
+  } catch (error) {
+    console.error('Erro ao baixar estoque:', error);
+    return res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+};
+
 }
 
 module.exports = new EntregaController();

@@ -1,18 +1,47 @@
-const express = require('express');
-const entregaController = require('../controllers/entregaController');
-const { authenticateToken } = require('../middleware/auth');
+import React from 'react';
+import { Input } from '../components/Input';
+import { Select } from '../components/ui/select';
 
-const router = express.Router();
+function Relatorios() {
+  const today = new Date().toISOString().split('T')[0];
+  const [dataInicio, setDataInicio] = React.useState(today);
+  const [dataFim, setDataFim] = React.useState(today);
+  const [entregadorSelecionado, setEntregadorSelecionado] = React.useState('');
 
-// Todas as rotas de entrega requerem autenticação
-router.use(authenticateToken);
+  return (
+    <div>
+      <h1>Relatórios</h1>
+      <form>
+        <label htmlFor="dataInicio">Data Início:</label>
+        <Input
+          id="dataInicio"
+          type="date"
+          value={dataInicio}
+          onChange={(e) => setDataInicio(e.target.value)}
+        />
 
-router.get('/', entregaController.index);
-router.get('/:id', entregaController.show);
-router.post('/', entregaController.store);
-router.put('/:id', entregaController.update);
-router.patch('/:id/status', entregaController.updateStatus);
-router.delete('/:id', entregaController.destroy);
+        <label htmlFor="dataFim">Data Fim:</label>
+        <Input
+          id="dataFim"
+          type="date"
+          value={dataFim}
+          onChange={(e) => setDataFim(e.target.value)}
+        />
 
-module.exports = router;
+        <div className="mb-6">
+          <Label htmlFor="entregador">Entregador</Label>
+          <Select id="entregador" value={entregadorSelecionado} onChange={(e) => setEntregadorSelecionado(e.target.value)}>
+            <option value="">Todos</option>
+            <option value="1">Entregador 1</option>
+            <option value="2">Entregador 2</option>
+            {/* No futuro, substitua por um map vindo da API de entregadores */}
+          </Select>
+        </div>
 
+        {/* Outros campos e botões do formulário */}
+      </form>
+    </div>
+  );
+}
+
+export default Relatorios;
